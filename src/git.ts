@@ -1,15 +1,18 @@
-import { setFailed } from "@actions/core";
 import { actionInterface } from "./constants";
 import { execute } from "./execute";
-import { isNullOrUndefined, hasRequiredParameters } from "./util";
+import {
+  isNullOrUndefined,
+  hasRequiredParameters,
+  suppressSensitiveInformation
+} from "./util";
 
-/** Generates the branch if it doesn't exist on the remote. */
+/* Generates the branch if it doesn't exist on the remote. */
 export async function init(action: actionInterface): Promise<void | Error> {
   try {
     hasRequiredParameters(action);
 
     console.log(`Deploying using ${action.tokenType}... 🔑`);
-    console.log('Configuring git...')
+    console.log("Configuring git...");
 
     await execute(`git init`, action.workspace);
     await execute(`git config user.name "${action.name}"`, action.workspace);
@@ -21,20 +24,23 @@ export async function init(action: actionInterface): Promise<void | Error> {
     );
     await execute(`git fetch`, action.workspace);
 
-    console.log('Git configured... 🔧');
+    console.log("Git configured... 🔧");
   } catch (error) {
-    throw `There was an error initializing the repository: ${error} ❌`;
+    throw new Error(
+      `There was an error initializing the repository: ${suppressSensitiveInformation(
+        error.message,
+        action
+      )} ❌`
+    );
   }
 }
 
-/** Switches to the base branch. */
+/* Switches to the base branch. */
 export async function switchToBaseBranch(
   action: actionInterface
 ): Promise<void> {
   try {
     hasRequiredParameters(action);
-
-    console.log('Switching to the base branch...')
 
     await execute(
       `git checkout --progress --force ${
@@ -42,20 +48,23 @@ export async function switchToBaseBranch(
       }`,
       action.workspace
     );
-
-    console.log("Switched to the base branch... 🌲");
   } catch (error) {
-    throw `There was an error switching to the base branch: ${error} ❌`;
+    throw new Error(
+      `There was an error switching to the base branch: ${suppressSensitiveInformation(
+        error.message,
+        action
+      )} ❌`
+    );
   }
 }
 
-/** Generates the branch if it doesn't exist on the remote. */
+/* Generates the branch if it doesn't exist on the remote. */
 export async function generateBranch(action: actionInterface): Promise<void> {
   try {
     hasRequiredParameters(action);
 
     console.log(`Creating the ${action.branch} branch...`);
-  
+
     await switchToBaseBranch(action);
     await execute(`git checkout --orphan ${action.branch}`, action.workspace);
     await execute(`git reset --hard`, action.workspace);
@@ -69,21 +78,25 @@ export async function generateBranch(action: actionInterface): Promise<void> {
     );
     await execute(`git fetch`, action.workspace);
 
-    console.log(`Created the ${action.branch} branch... 🔧`)
+    console.log(`Created the ${action.branch} branch... 🔧`);
   } catch (error) {
-    throw `There was an error creating the deployment branch: ${error} ❌`;
+    throw new Error(
+      `There was an error creating the deployment branch: ${suppressSensitiveInformation(
+        error.message,
+        action
+      )} ❌`
+    );
   }
 }
 
-/** Runs the necessary steps to make the deployment. */
+/* Runs the necessary steps to make the deployment. */
 export async function deploy(action: actionInterface): Promise<void> {
+  const temporaryDeploymentDirectory = "gh-action-temp-deployment-folder";
+  const temporaryDeploymentBranch = "gh-action-temp-deployment-branch";
+  console.log("Starting to commit changes...");
+
   try {
     hasRequiredParameters(action);
-
-    const temporaryDeploymentDirectory = "gh-action-temp-deployment-folder";
-    const temporaryDeploymentBranch = "gh-action-temp-deployment-branch";
-
-    console.log('Starting to commit changes...')
 
     /*
         Checks to see if the remote exists prior to deploying.
@@ -147,7 +160,7 @@ export async function deploy(action: actionInterface): Promise<void> {
 
     const hasFilesToCommit = await execute(
       `git status --porcelain`,
-      temporaryDeploymentDirectory
+      `${action.workspace}/${temporaryDeploymentDirectory}`
     );
 
     if (!hasFilesToCommit && !action.isTest) {
@@ -156,10 +169,13 @@ export async function deploy(action: actionInterface): Promise<void> {
     }
 
     // Commits to GitHub.
-    await execute(`git add --all .`, temporaryDeploymentDirectory);
+    await execute(
+      `git add --all .`,
+      `${action.workspace}/${temporaryDeploymentDirectory}`
+    );
     await execute(
       `git checkout -b ${temporaryDeploymentBranch}`,
-      temporaryDeploymentDirectory
+      `${action.workspace}/${temporaryDeploymentDirectory}`
     );
     await execute(
       `git commit -m "${
@@ -169,23 +185,30 @@ export async function deploy(action: actionInterface): Promise<void> {
       } ${
         process.env.GITHUB_SHA ? `- ${process.env.GITHUB_SHA}` : ""
       } 🚀" --quiet`,
-      temporaryDeploymentDirectory
+      `${action.workspace}/${temporaryDeploymentDirectory}`
     );
     await execute(
       `git push --force ${action.repositoryPath} ${temporaryDeploymentBranch}:${action.branch}`,
-      temporaryDeploymentDirectory
+      `${action.workspace}/${temporaryDeploymentDirectory}`
     );
 
-    console.log(`Changes committed to the ${action.branch} branch... 📦`)
+    console.log(`Changes committed to the ${action.branch} branch... 📦`);
 
     // Cleans up temporary files/folders and restores the git state.
     console.log("Running post deployment cleanup jobs...");
-    await execute(`rm -rf ${temporaryDeploymentDirectory}`, action.workspace);
     await execute(
       `git checkout --progress --force ${action.defaultBranch}`,
       action.workspace
     );
   } catch (error) {
-    throw `The deploy step encountered an error: ${error} ❌`;
+    throw new Error(
+      `The deploy step encountered an error: ${suppressSensitiveInformation(
+        error.message,
+        action
+      )} ❌`
+    );
+  } finally {
+    // Ensures the deployment directory is safely removed.
+    await execute(`rm -rf ${temporaryDeploymentDirectory}`, action.workspace);
   }
 }

@@ -1,6 +1,7 @@
 // Initial env variable setup for tests.
 process.env["INPUT_FOLDER"] = "build";
 process.env["GITHUB_SHA"] = "123";
+process.env["INPUT_DEBUG"] = "debug";
 
 import "../src/main";
 import { action } from "../src/constants";
@@ -16,7 +17,8 @@ jest.mock("../src/execute", () => ({
 
 jest.mock("@actions/core", () => ({
   setFailed: jest.fn(),
-  getInput: jest.fn()
+  getInput: jest.fn(),
+  exportVariable: jest.fn()
 }));
 
 describe("main", () => {
@@ -34,10 +36,11 @@ describe("main", () => {
         name: "asd",
         email: "as@cat"
       },
-      isTest: false
+      isTest: false,
+      debug: true
     });
     await run(action);
-    expect(execute).toBeCalledTimes(18);
+    expect(execute).toBeCalledTimes(19);
   });
 
   it("should throw if an error is encountered", async () => {
