@@ -1,13 +1,16 @@
 {
   "name": "github-pages-deploy-action",
   "description": "GitHub action for building a project and deploying it to GitHub pages.",
-  "private": true,
-  "main": "lib/main.js",
+  "author": "James Ives <iam@jamesiv.es>",
+  "version": "3.3.0",
+  "license": "MIT",
+  "main": "lib/lib.js",
+  "types": "lib/lib.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf lib && tsc --declaration",
     "test": "jest",
     "lint": "tslint -p tsconfig.json --project '.' || (echo Project needs formatting)",
-    "format": "prettier --write './src/*.ts'"
+    "format": "prettier --write './**/*.ts'"
   },
   "repository": {
     "type": "git",
@@ -29,23 +32,19 @@
     "deploy",
     "deployment"
   ],
-  "author": "James Ives",
-  "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.0.0",
-    "@actions/exec": "^1.0.1",
-    "@actions/github": "^1.1.0",
-    "@actions/io": "^1.0.1"
+    "@actions/core": "^1.2.0",
+    "@actions/exec": "^1.0.2",
+    "@actions/github": "^2.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.13",
-    "@types/node": "^12.11.0",
-    "jest": "^24.8.0",
-    "jest-circus": "^24.7.1",
-    "lodash": "^4.17.15",
-    "prettier": "^1.18.2",
-    "ts-jest": "^24.0.2",
-    "tslint": "^5.20.0",
-    "typescript": "^3.5.1"
+    "@types/jest": "^25.1.0",
+    "@types/node": "^13.1.2",
+    "jest": "^25.1.0",
+    "jest-circus": "^25.1.0",
+    "prettier": "^1.19.1",
+    "ts-jest": "^25.0.0",
+    "tslint": "^6.0.0",
+    "typescript": "^3.7.4"
   }
 }

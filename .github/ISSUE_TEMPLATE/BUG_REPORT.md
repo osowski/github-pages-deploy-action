@@ -1,6 +1,8 @@
 ---
 name: Bug Report
 about: Create a bug report to help us improve the action.
+labels:
+  - bug
 
 ---
 
@@ -13,13 +15,9 @@ about: Create a bug report to help us improve the action.
 > Steps to reproduce the behavior.
 
 
-**Expected behavior**
+**Logs**
 
-> Please provide a clear and concise description of what you expected to happen.
-
-**Screenshots**
-
-> If applicable, add screenshots to help explain your problem.
+> Please provide your deployment logs and a link to your workflow file.
 
 
 **Additional Comments**
